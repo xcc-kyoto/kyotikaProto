@@ -11,4 +11,7 @@
 
 @interface KMVaults : NSObject
 - (NSSet*)treasureAnnotationsInRegion:(MKCoordinateRegion)region;
+- (NSArray*)landmarksForKey:(id)key;
+- (NSArray*)keywords;
+- (NSArray*)landmarks;
 @end

@@ -96,7 +96,7 @@ const static float LeverImageSize = 44.0;
         _vector = CGPointZero;
         _value = 0.0;
     } else {    
-        CGPoint vector = CGPointMake(pt.x / length, pt.y / length);
+        CGPoint vector = CGPointMake(pt.x / _radius, pt.y / _radius);
         changed = ((_vector.x != vector.x) || (_vector.y != vector.y));
         _vector = vector;
         

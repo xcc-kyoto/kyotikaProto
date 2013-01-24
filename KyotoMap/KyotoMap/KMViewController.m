@@ -14,12 +14,16 @@
 #import "KMTreasureAnnotationView.h"
 #import "KMVaults.h"
 #import "KMQuizeViewController.h"
+#import "KMLandmarkViewController.h"
+#import "KMVaultViewController.h"
+#import "KMLandmarkListController.h"
 
-@interface KMViewController ()<MKMapViewDelegate, KMQuizeViewControllerDelegate> {
+@interface KMViewController ()<MKMapViewDelegate, KMQuizeViewControllerDelegate, KMVaultViewControllerDelegate, KMLandmarkViewControllerDelegate> {
     MKMapView* _mapView;
     KMLever* _virtualLeaver;
     MKCoordinateRegion _kyotoregion;
     KMTreasureHunterAnnotation* _hunterAnnotation;
+    KMTreasureHunterAnnotationView* _hunterAnnotationView;
     NSTimer*    _timer;
     KMVaults*    _vaults;
     BOOL        _firstLoad;
@@ -28,10 +32,52 @@
 
 @implementation KMViewController
 
+-(void)vaultViewControllerDone:(KMVaultViewController*)viewController
+{
+    [self dismissModalViewControllerAnimated:YES];
+}
+-(void)landmarkViewControllerDone:(KMLandmarkViewController*)viewController
+{
+    [self dismissModalViewControllerAnimated:YES];
+}
+
+- (void)keywordListControllerShowLocation:(KMKeywordListController*)controller object:(id)object
+{
+    NSArray* landmarks = [_vaults landmarksForKey:object];
+    for (KMTreasureAnnotation* a in landmarks) {
+        printf("show landmark %s\n", [a.title UTF8String]) ;
+    }
+    [self dismissModalViewControllerAnimated:YES];
+}
+
+- (NSString*)keywordListControllerKeyword:(KMKeywordListController*)ViewController fromObject:(id)object
+{
+    return  [NSString stringWithFormat:@"Key %d", [object intValue]];
+}
+
+- (NSArray*)keywordListControllerLandmarks:(KMKeywordListController*)ViewController fromObject:(id)object
+{
+    return [_vaults landmarksForKey:object];
+}
+
+- (void)landmarkListControllerShowLocation:(KMLandmarkListController*)controller object:(id)object
+{
+    KMTreasureAnnotation* a = (KMTreasureAnnotation*)object;
+    printf("show landmark %s\n", [a.title UTF8String]) ;
+    [self dismissModalViewControllerAnimated:YES];
+}
+
+- (NSString*)landmarkListControllerLandmark:(KMLandmarkListController*)controller fromObject:(id)object
+{
+    KMTreasureAnnotation* a = (KMTreasureAnnotation*)object;
+    return a.title;
+}
+
 - (void)viewDidAppear:(BOOL)animated
 {
     [super viewDidAppear:animated];
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(tap:) name:@"KMTreasureAnnotationViewTapNotification" object:nil];
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(huntertap:) name:@"KMTreasureHunterAnnotationViewTapNotification" object:nil];
     
     for (id < MKAnnotation > a  in _mapView.annotations) {
         if ([a isKindOfClass:[KMTreasureAnnotation class]]) {
@@ -46,10 +92,29 @@
     [super viewDidDisappear:animated];
     [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
-
+- (void)huntertap:(NSNotification*)notification
+{
+    KMVaultViewController* c = [[KMVaultViewController alloc] init];
+    c.keywords = [_vaults keywords];
+    c.landmarks= [_vaults landmarks];
+    c.vaultsDelegate = self;
+    c.modalTransitionStyle = UIModalTransitionStyleFlipHorizontal;
+    [self presentModalViewController:c animated:YES];
+}
 - (void)tap:(NSNotification*)notification
 {
     KMTreasureAnnotation* annotation = [notification.userInfo objectForKey:@"annotation"];
+
+    if (annotation.passed) {
+        //  キーワードを見る
+        KMLandmarkViewController* c = [[KMLandmarkViewController alloc] init];
+        c.keywords = annotation.keywords;
+        c.landmarkDelegate = self;
+        c.modalTransitionStyle = UIModalTransitionStyleFlipHorizontal;
+        [self presentModalViewController:c animated:YES];
+        return;
+    }
+    
     KMQuizeViewController* c = [[KMQuizeViewController alloc] initWithStyle:UITableViewStyleGrouped];
     c.question = annotation.question;
     c.answers = annotation.answers;
@@ -97,7 +162,9 @@
     [virtualSwitch addTarget:self action:@selector(virtualSwitch:) forControlEvents:UIControlEventValueChanged];
     [self.view addSubview:virtualSwitch];
     
-    frame = CGRectMake(self.view.bounds.size.width - 120, self.view.bounds.size.height - 120, 80, 80);
+    float radius = 150;
+    frame = CGRectMake(self.view.bounds.size.width - radius - 20,
+                       self.view.bounds.size.height - radius - 20, radius, radius);
     _virtualLeaver = [[KMLever alloc] initWithFrame:frame];
     _virtualLeaver.autoresizingMask = UIViewAutoresizingFlexibleTopMargin|UIViewAutoresizingFlexibleLeftMargin;
     _virtualLeaver.hidden = YES;
@@ -110,6 +177,8 @@
                                                                         10000.0,  //  10km
                                                                         10000.0);
     _mapView.region = _kyotoregion;  //  アニメーション抜き
+    [_mapView setUserTrackingMode:MKUserTrackingModeFollow  animated:YES];
+    _mapView.showsUserLocation = YES;   //  ユーザー位置表示
 }
 
 - (void)move
@@ -117,8 +186,8 @@
     CGPoint vector = _virtualLeaver.vector;
     CGPoint pt = [_mapView convertCoordinate:_hunterAnnotation.coordinate toPointToView:_mapView];
     
-    float dx = 5 * vector.x;
-    float dy = 5 * vector.y;
+    float dx = 15 * vector.x;
+    float dy = 15 * vector.y;
     CGPoint point = CGPointMake(pt.x + dx, pt.y + dy);
     CLLocationCoordinate2D centerCoordinate = [_mapView convertPoint:point toCoordinateFromView:_mapView];
     _hunterAnnotation.coordinate = centerCoordinate;
@@ -126,8 +195,7 @@
     
     KMTreasureHunterAnnotationView* view = (KMTreasureHunterAnnotationView*)[_mapView viewForAnnotation:_hunterAnnotation];
     [view direction:vector];
-    
-//    MKMetersBetweenMapPoints
+
 }
 
 - (void)virtualSwitch:(UISwitch*)virtualSwitch
@@ -170,16 +238,28 @@
 - (MKAnnotationView *)mapView:(MKMapView *)mapView viewForAnnotation:(id < MKAnnotation >)annotation
 {
     // これがユーザの位置の場合は、単にnilを返す
-    if ([annotation isKindOfClass:[MKUserLocation class]])
-        return nil;
-    
+    if ([annotation isKindOfClass:[MKUserLocation class]]) {
+        if (_virtualLeaver.hidden == NO)
+            return nil;
+        KMTreasureHunterAnnotationView* pinView = (KMTreasureHunterAnnotationView*)[mapView dequeueReusableAnnotationViewWithIdentifier:@"Hunter"];
+        if (pinView == nil) {
+            pinView = [[KMTreasureHunterAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"Hunter"];
+        }
+        pinView.hunterAnnotation = _hunterAnnotation;
+        pinView.canShowCallout = NO;
+        [pinView startAnimation];
+        _hunterAnnotationView = pinView;
+        return pinView;
+    }
     if ([annotation isKindOfClass:[KMTreasureHunterAnnotation class]]) {
         KMTreasureHunterAnnotationView* pinView = (KMTreasureHunterAnnotationView*)[mapView dequeueReusableAnnotationViewWithIdentifier:@"Hunter"];
         if (pinView == nil) {
             pinView = [[KMTreasureHunterAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"Hunter"];
         }
+        pinView.hunterAnnotation = _hunterAnnotation;
         pinView.canShowCallout = NO;
         [pinView startAnimation];
+        _hunterAnnotationView = pinView;
         return pinView;
     }
     KMTreasureAnnotationView* pinView = (KMTreasureAnnotationView*)[mapView dequeueReusableAnnotationViewWithIdentifier:@"Pin"];
@@ -200,6 +280,10 @@
     if (_firstLoad) {
         return;
     }
+    if (_mapView.region.span.latitudeDelta > 0.0025)
+        _hunterAnnotationView.backgroundColor = [UIColor clearColor];
+    else
+        _hunterAnnotationView.backgroundColor = [UIColor redColor];
     NSMutableSet* treasureAnnotations = [[_vaults treasureAnnotationsInRegion:_mapView.region] mutableCopy];
     NSArray* array = [_mapView annotations];
     NSMutableSet* set = [NSMutableSet setWithArray:array];
@@ -212,9 +296,13 @@
     if ([treasureAnnotations count] > 0)
         [_mapView addAnnotations:treasureAnnotations.allObjects];
     
-    for (id < MKAnnotation > a  in _mapView.annotations) {
+    for (KMTreasureAnnotation* a  in _mapView.annotations) {
         if ([a isKindOfClass:[KMTreasureAnnotation class]]) {
             KMTreasureAnnotationView* v = (KMTreasureAnnotationView*)[_mapView viewForAnnotation:a];
+            if ([v enter:_hunterAnnotation.coordinate]) {
+                [v enterNotification];
+                break;
+            }
             [v setNeedsDisplay];
             [v startAnimation];
         }
@@ -236,6 +324,11 @@
         });
         
     }
+}
+
+- (void)mapView:(MKMapView *)mapView didUpdateUserLocation:(MKUserLocation *)userLocation
+{
+    _hunterAnnotation.coordinate = userLocation.coordinate;
 }
 @end
 

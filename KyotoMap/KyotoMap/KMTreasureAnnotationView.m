@@ -6,6 +6,7 @@
 //  Copyright (c) 2013年 國居貴浩. All rights reserved.
 //
 
+#import <MapKit/MapKit.h>
 #import <QuartzCore/QuartzCore.h>
 #import "KMTreasureAnnotationView.h"
 
@@ -32,21 +33,41 @@
     return imageBox;
 }
 
-- (void)setSelected:(BOOL)selected animated:(BOOL)animated
-{
-    [super setSelected:selected animated:animated];
-    [self stopAnimation];
-}
 
+- (void)enterNotification
+{
+    _blinker.contents = (id)self.imageBox.CGImage;
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"KMTreasureAnnotationViewTapNotification" object:self userInfo:[NSDictionary dictionaryWithObjectsAndKeys:self.annotation, @"annotation", nil]];
+}
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
     KMTreasureAnnotation* a = self.annotation;
-    if (a.passed)
-        return;
     if (a.find == NO)
         return;
-    _blinker.contents = (id)self.imageBox.CGImage;
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"KMTreasureAnnotationViewTapNotification" object:self userInfo:[NSDictionary dictionaryWithObjectsAndKeys:self.annotation, @"annotation", nil]];
+    [self enterNotification];
+}
+
+- (BOOL)enter:(CLLocationCoordinate2D)location
+{
+    KMTreasureAnnotation* an = self.annotation;
+    if (an.passed)
+        return NO;
+    if (an.lastAtackDate && [[NSDate date] timeIntervalSinceDate:an.lastAtackDate] < 20)
+        return NO;
+    
+    CLLocationCoordinate2D a = self.annotation.coordinate;
+    MKCoordinateRegion region = MKCoordinateRegionMakeWithDistance(a, 100.0, 100.0);
+    float peekminlatitude = region.center.latitude - region.span.latitudeDelta;
+    float peekmaxlatitude = region.center.latitude + region.span.latitudeDelta;
+    float peekminlongitude = region.center.longitude - region.span.longitudeDelta;
+    float peekmaxlongitude = region.center.longitude + region.span.longitudeDelta;
+    if (location.longitude < peekminlongitude) return NO;
+    if (location.longitude > peekmaxlongitude) return NO;
+    if (location.latitude < peekminlatitude) return NO;
+    if (location.latitude > peekmaxlatitude) return NO;
+    
+    an.lastAtackDate = [NSDate date];
+    return YES;
 }
 
 - (id)initWithAnnotation:(id <MKAnnotation>)annotation reuseIdentifier:(NSString*)reuseIdentifier

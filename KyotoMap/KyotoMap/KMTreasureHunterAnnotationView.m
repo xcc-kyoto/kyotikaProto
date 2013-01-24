@@ -63,6 +63,7 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"KMTreasureHunterAnnotationViewTapNotification" object:self userInfo:[NSDictionary dictionaryWithObjectsAndKeys:_hunterAnnotation, @"annotation", nil]];
 }
 
 - (id)initWithAnnotation:(id <MKAnnotation>)annotation reuseIdentifier:(NSString*)reuseIdentifier
@@ -82,6 +83,8 @@
         _walker.contents = (id)self.image.CGImage;
         _walker.contentsRect = [(NSValue*)[self.contentsRectArrayStand objectAtIndex:0] CGRectValue];
         _direction = -1;
+        
+        self.layer.cornerRadius = myFrame.size.width / 2;
         [self.layer addSublayer:_walker];
 
     }
@@ -139,3 +142,4 @@
 
 @implementation KMTreasureHunterAnnotation
 @end
+

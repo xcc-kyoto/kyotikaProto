@@ -8,12 +8,13 @@
 
 #import <MapKit/MapKit.h>
 
+@interface KMTreasureHunterAnnotation : MKPointAnnotation
+@end
+
 @interface KMTreasureHunterAnnotationView : MKAnnotationView
 - (void)startAnimation;
 - (void)stopAnimation;
 - (void)direction:(CGPoint)vector;
+@property (assign) KMTreasureHunterAnnotation* hunterAnnotation;
 @end
 
-@interface KMTreasureHunterAnnotation : MKPointAnnotation
-
-@end

@@ -11,11 +11,16 @@
 @interface KMTreasureAnnotationView : MKAnnotationView
 - (void)startAnimation;
 - (void)stopAnimation;
+- (void)enterNotification;
+
+- (BOOL)enter:(CLLocationCoordinate2D)location;
 @end
 
 @interface KMTreasureAnnotation : MKPointAnnotation
 @property BOOL passed;
 @property BOOL find;
+@property (copy) NSArray* keywords;
+@property (retain) NSDate* lastAtackDate;
 
 - (NSString*)question;
 - (NSArray*)answers;
