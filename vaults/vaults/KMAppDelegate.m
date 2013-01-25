@@ -78,17 +78,17 @@
         [_keywords addObject:dic];
     }
     
-/*
+#if 1
     KMLandmarkViewController* viewController = [[KMLandmarkViewController alloc] init];
     viewController.urlString = @"http://ameblo.jp/xcc/";
     viewController.keywords = _keywords;
     viewController.landmarkDelegate = self;
- */
+#else
     KMVaultViewController* viewController = [[KMVaultViewController alloc] init];
     viewController.keywords = _keywords;
     viewController.landmarks = _landmarks;
     viewController.vaultsDelegate = self;
-    
+#endif
     self.tabBarController = viewController;
     self.window.rootViewController = self.tabBarController;
     [self.window makeKeyAndVisible];
