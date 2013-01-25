@@ -94,7 +94,7 @@
             [set addObject:a];
             continue;
         }
-        if (region.span.latitudeDelta > 0.0025)
+        if (region.span.latitudeDelta > 0.0050)
             continue;
         if (a.coordinate.longitude < peekminlongitude) continue;
         if (a.coordinate.longitude > peekmaxlongitude) continue;

@@ -56,7 +56,7 @@
         return NO;
     
     CLLocationCoordinate2D a = self.annotation.coordinate;
-    MKCoordinateRegion region = MKCoordinateRegionMakeWithDistance(a, 100.0, 100.0);
+    MKCoordinateRegion region = MKCoordinateRegionMakeWithDistance(a, 50.0, 50.0);
     float peekminlatitude = region.center.latitude - region.span.latitudeDelta;
     float peekmaxlatitude = region.center.latitude + region.span.latitudeDelta;
     float peekminlongitude = region.center.longitude - region.span.longitudeDelta;

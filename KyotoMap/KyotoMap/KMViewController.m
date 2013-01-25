@@ -280,7 +280,7 @@
     if (_firstLoad) {
         return;
     }
-    if (_mapView.region.span.latitudeDelta > 0.0025)
+    if (_mapView.region.span.latitudeDelta > 0.0050)
         _hunterAnnotationView.backgroundColor = [UIColor clearColor];
     else
         _hunterAnnotationView.backgroundColor = [UIColor redColor];
@@ -299,14 +299,25 @@
     for (KMTreasureAnnotation* a  in _mapView.annotations) {
         if ([a isKindOfClass:[KMTreasureAnnotation class]]) {
             KMTreasureAnnotationView* v = (KMTreasureAnnotationView*)[_mapView viewForAnnotation:a];
-            if ([v enter:_hunterAnnotation.coordinate]) {
-                [v enterNotification];
-                break;
-            }
             [v setNeedsDisplay];
             [v startAnimation];
         }
     }
+
+    int64_t delayInSeconds = 0.01;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, delayInSeconds * NSEC_PER_SEC);
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        for (KMTreasureAnnotation* a  in _mapView.annotations) {
+            if ([a isKindOfClass:[KMTreasureAnnotation class]]) {
+                KMTreasureAnnotationView* v = (KMTreasureAnnotationView*)[_mapView viewForAnnotation:a];
+                if ([v enter:_hunterAnnotation.coordinate]) {
+                    [v enterNotification];
+                    break;
+                }
+            }
+        }
+
+    });
 }
 
 - (void)mapViewDidFinishLoadingMap:(MKMapView *)mapView
